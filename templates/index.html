@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Powerball Prediction</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        button, input {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .datepicker {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Powerball Prediction</h1>
+    <div class="datepicker">
+        <input id="datePicker" type="text" placeholder="Select a date" readonly>
+    </div>
+    <button id="predictBtn">Predict</button>
+    <div class="result" id="result"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        // Initialize flatpickr with custom day restrictions
+        flatpickr("#datePicker", {
+            dateFormat: "d/m/Y",
+            disable: [
+                function(date) {
+                    // Only allow Mondays (1), Wednesdays (3), and Saturdays (6)
+                    const day = date.getDay();
+                    return !(day === 1 || day === 3 || day === 6);
+                }
+            ],
+            locale: {
+                firstDayOfWeek: 1 // Week starts on Monday
+            },
+        });
+
+        // Handle prediction button click
+        document.getElementById('predictBtn').addEventListener('click', async function () {
+            const resultDiv = document.getElementById('result');
+            const selectedDate = document.getElementById('datePicker').value;
+
+            if (!selectedDate) {
+                resultDiv.innerHTML = "Please select a valid date!";
+                return;
+            }
+
+            resultDiv.innerHTML = "Loading...";
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selectedDate })
+                });
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <p><strong>Drawing Date:</strong> ${data.drawing_date}</p>
+                    <p><strong>Prediction (without rounding):</strong> [${data.prediction_without_rounding.join(", ")}]</p>
+                    <p><strong>Prediction (rounded up):</strong> [${data.prediction_rounded_up.join(", ")}]</p>
+                    <p><strong>Prediction (rounded down):</strong> [${data.prediction_rounded_down.join(", ")}]</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = "Error in prediction!";
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
+<!-- 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Prediction</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      display: inline-block;
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .date {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    .prediction-balls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .ball {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+    .white-ball {
+      background-color: white;
+      border: 2px solid #ccc;
+    }
+    .red-ball {
+      background-color: red;
+      color: white;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <label for="date-picker">Select Date:</label>
+      <input type="date" id="date-picker" min="" onchange="restrictDays()" />
+    </div>
+    <div class="date" id="date-output">Sat, Nov 16, 2024</div>
+
+    <div class="prediction-balls">
+      <div class="ball white-ball" id="white-ball-1">21</div>
+      <div class="ball white-ball" id="white-ball-2">22</div>
+      <div class="ball white-ball" id="white-ball-3">25</div>
+      <div class="ball white-ball" id="white-ball-4">32</div>
+      <div class="ball white-ball" id="white-ball-5">38</div>
+      <div class="ball red-ball" id="red-ball">16</div>
+    </div>
+
+    <button onclick="fetchPrediction()">Predict</button>
+  </div>
+
+  <script>
+    // Restrict the user to only choose Monday, Wednesday, or Saturday
+    function restrictDays() {
+      const datePicker = document.getElementById("date-picker");
+      const selectedDate = new Date(datePicker.value);
+      const day = selectedDate.getDay(); // 0: Sunday, 1: Monday, ..., 6: Saturday
+
+      if (![1, 3, 6].includes(day)) {
+        alert("Please select only Monday, Wednesday, or Saturday!");
+        datePicker.value = "";
+      } else {
+        document.getElementById("date-output").innerText = selectedDate.toDateString();
+      }
+    }
+
+    // Fetch prediction from the server
+    async function fetchPrediction() {
+      const selectedDate = document.getElementById("date-picker").value;
+      if (!selectedDate) {
+        alert("Please select a valid date!");
+        return;
+      }
+
+      const response = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedDate }),
+      });
+
+      const data = await response.json();
+
+      // Update balls dynamically
+      document.getElementById("white-ball-1").innerText = data.prediction_without_rounding[0];
+      document.getElementById("white-ball-2").innerText = data.prediction_without_rounding[1];
+      document.getElementById("white-ball-3").innerText = data.prediction_without_rounding[2];
+      document.getElementById("white-ball-4").innerText = data.prediction_without_rounding[3];
+      document.getElementById("white-ball-5").innerText = data.prediction_without_rounding[4];
+      document.getElementById("red-ball").innerText = data.prediction_without_rounding[5];
+    }
+  </script>
+</body>
+</html> -->
